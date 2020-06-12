@@ -5,14 +5,16 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattService
 import android.content.Context
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import grey.example.android.ble.R
+import grey.example.android.ble.Strings
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
+
 
 class BLEprocessing(val ble: GATToverCoroutines) {
 
@@ -129,10 +131,10 @@ class BLEprocessing(val ble: GATToverCoroutines) {
             }
         }catch(e: BLEtimeoutException){
             e.printStackTrace()
-            return "Превышен таймаут операции"
+            return Strings.get(R.string.timeout_is_over)
         }catch(e: BLEillegalStateException){
             e.printStackTrace()
-            return "Невозможно выполнить команду"
+            return Strings.get(R.string.unable_to_execute_command)
         }
         return allString
     }

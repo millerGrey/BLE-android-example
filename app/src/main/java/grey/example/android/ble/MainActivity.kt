@@ -2,8 +2,7 @@ package grey.example.android.ble
 
 import android.Manifest
 import android.app.Activity
-import android.app.Application
-import android.bluetooth.*
+import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
@@ -12,8 +11,7 @@ import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.util.Log
-import android.view.View
+import android.view.Gravity
 import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
 import androidx.annotation.RequiresApi
@@ -22,17 +20,16 @@ import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProviders
-import grey.example.android.ble.databinding.ActivityMainBinding
 import androidx.lifecycle.observe
+import grey.example.android.ble.databinding.ActivityMainBinding
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
 
-    val mainVM by lazy{ViewModelProviders.of(this, MainViewModelFactory(application)).get(MainViewModel::class.java)}
+    val mainVM by lazy{ViewModelProviders.of(this, MainViewModelFactory(App.instance)).get(MainViewModel::class.java)}
     val REQUEST_ENABLE_BT = 1
     val REQUEST_LOCATION_ACCESS = 2
     var isFirstState = true
-
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,15 +37,11 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         initFragment(DeviceListFragment().newInstance())
         mainVM.toastMessage.observe(this) { value ->
-            Toast.makeText(
-                this,
-                value,
-                LENGTH_SHORT
-            ).show()
+            makeToast(value)
         }
         mainVM.isConnected.observe(this){
             if((it == false) && !isFirstState){
-                Toast.makeText(this, "Disconnected", LENGTH_SHORT).show()
+                makeToast(getString(R.string.disconnected))
                 mainVM.reset()
                 return@observe
             }
@@ -82,6 +75,7 @@ class MainActivity : AppCompatActivity() {
     override fun onStop() {
         mainVM.stopScan()
         mainVM.disconnect()
+        isFirstState = true
         super.onStop()
     }
 
@@ -150,4 +144,10 @@ class MainActivity : AppCompatActivity() {
         return true
     }//checkBlePermission
 
+
+    fun makeToast(str: String?) {
+        val toast = Toast.makeText(this, str, LENGTH_SHORT)
+        toast.setGravity(Gravity.TOP, 0, 200)
+        toast.show()
+    }
 }

@@ -16,7 +16,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application){
     val toastMessage: LiveData<String>
         get() = _toastMessage
 
-
     private var _spinner = MutableLiveData<Boolean>(false)
     val spinner: LiveData<Boolean>
         get() = _spinner
@@ -59,7 +58,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application){
         GlobalScope.launch {
             processing.disconnectFromDevice()
         }
-        _toastMessage.value = "Disconnected"
+//        _toastMessage.value = getApplication<Application>().getString(R.string.disconnected)
         _result.value = ""
     }
 
@@ -85,13 +84,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application){
 
     fun onItemClick(pos: Int){
         stopScan()
-        Log.d("GARD", "ONITEMCLICK ${isConnected.value}")
         activeDevice  = devices.value?.toList()?.get(pos)
         if(isConnected.value == false){
             GlobalScope.launch {
                 activeDevice?.let {
                     if (processing.connectToDevice(it, getApplication())) {
-                        _toastMessage.postValue("Connected to ${it.name}")
+                        _toastMessage.postValue(String.format(getApplication<Application>().getString(R.string.connected),it.name.toString()))
                     }
                 }
             }

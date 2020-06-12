@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Пример BLE</string>
+    <string name="EnableLocationService">Включить определение местоположения</string>
+    <string name="no_device">Нет доступных устройств</string>
+    <string name="wrong_data">Неправильные данные</string>
+    <string name="command_not_support">Команда не поддерживается</string>
+    <string name="timeout_is_over">Превышен таймаут операции</string>
+    <string name="unable_to_execute_command">Невозможно выполнить команду</string>
+    <string name="disconnected">Устройство отключено</string>
+    <string name="connected">Подключено к %s</string>
+</resources>

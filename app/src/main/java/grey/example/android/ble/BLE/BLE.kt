@@ -14,7 +14,7 @@ import java.util.*
 /**
  * Exception when operation's timeout is over
  */
-class BLEtimeoutException(): Exception() {
+class BLEtimeoutException() : Exception() {
     override val message: String?
         get() = "Operation's timeout is over"
 }
@@ -22,7 +22,7 @@ class BLEtimeoutException(): Exception() {
 /**
  * Exception when order of operations is wrong
  */
-class BLEillegalStateException(): Exception() {
+class BLEillegalStateException() : Exception() {
     override val message: String?
         get() = "Gatt server is null. Maybe device is disconnected"
 }
@@ -32,21 +32,21 @@ class BLEillegalStateException(): Exception() {
  */
 data class ConnectionState(val status: Int, val newState: Int)
 data class BluetoothResult(val uuid: UUID, val value: String, val status: Int)
-data class OnDescriptorWrite(val descriptor: BluetoothGattDescriptor, val status: Int)
-data class OnDiscovered(val services: List<BluetoothGattService>)
-data class OnChanged(val uuid: UUID, val res: String)
+data class OnDescriptorWriteResult(val descriptor: BluetoothGattDescriptor, val status: Int)
+data class OnDiscoveredResult(val services: List<BluetoothGattService>)
+data class OnChangedResult(val uuid: UUID, val res: String)
 
 /**
  * Class implemented connection and data exchange with BLE device over coroutines.
  */
-class BLE: GATToverCoroutines {
+class BLE : GATToverCoroutines {
 
     override var btGattServer: BluetoothGatt? = null
 
     /**
      * List of active devicse's services
      */
-    private var btServices: List<BluetoothGattService> = emptyList()
+    private var GATTservices: List<BluetoothGattService> = emptyList()
 
     /**
      * Boolean LiveData parameter to notify about change connection state
@@ -54,6 +54,7 @@ class BLE: GATToverCoroutines {
     private var _isConnected = MutableLiveData<Boolean>(false)
     override val isConnected: LiveData<Boolean>
         get() = _isConnected
+
     /**
      * Client Characteristic Configuration Descriptor uuid
      */
@@ -62,31 +63,36 @@ class BLE: GATToverCoroutines {
     /**
      * Coroutine channels for interaction with BLE device
      */
-    private val chState = Channel<ConnectionState>(Channel.CONFLATED)
-    private val chDisco = Channel<OnDiscovered>(Channel.CONFLATED)
-    private val chResult = Channel<BluetoothResult>(Channel.CONFLATED)
-    private val chDesc = Channel<OnDescriptorWrite>(Channel.CONFLATED)
-    private val chChange = Channel<OnChanged>(Channel.CONFLATED)
+    private val channelState = Channel<ConnectionState>(Channel.CONFLATED)
+    private val channelDiscovery = Channel<OnDiscoveredResult>(Channel.CONFLATED)
+    private val channelResult = Channel<BluetoothResult>(Channel.CONFLATED)
+    private val channelDescriptor = Channel<OnDescriptorWriteResult>(Channel.CONFLATED)
+    private val channelCharacteristicChange = Channel<OnChangedResult>(Channel.CONFLATED)
 
-    private var isChChangeTimeout = false //TODO описать
+    /**
+     * It is timeout flag for channelCharacteristicChange.
+     * If notify will be received after timeout, result of notify will be send into channel.
+     * And in next time WaitForChange function return previous result.
+     * This flag needed to prevent this situation.
+     */
+    private var isChannelCharacteristicChangeTimeout = false
 
     /**
      * Operation's timeout
      */
     private val timeoutMs: Long = 2000
 
-
     /**
      *  Implementation of BluetoothGattCallback
      *  In this callback used coroutine channels.
      *  Every collback's function send their parameters in appropriate channel.
      */
-    private val gattCallback = object: BluetoothGattCallback(){
+    private val gattCallback = object : BluetoothGattCallback() {
 
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             super.onConnectionStateChange(gatt, status, newState)
-            val r = chState.offer(ConnectionState(status, newState))
-            if(newState == BluetoothProfile.STATE_DISCONNECTED){
+            val r = channelState.offer(ConnectionState(status, newState))
+            if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 btGattServer = null
                 gatt.close()
                 _isConnected.postValue(false)
@@ -94,26 +100,33 @@ class BLE: GATToverCoroutines {
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
-           chDisco.offer(OnDiscovered(gatt.services))
+            channelDiscovery.offer(OnDiscoveredResult(gatt.services))
         }
 
-        override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
+        override fun onCharacteristicChanged(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic
+        ) {
             super.onCharacteristicChanged(gatt, characteristic)
-            Log.d("ARD","1 $isChChangeTimeout")
-            if(!isChChangeTimeout){
-                Log.d("ARD",characteristic.getStringValue(0))
-                chChange.offer(OnChanged(characteristic.uuid,  characteristic.getStringValue(0)))}
-            else
-                isChChangeTimeout = false
+            if (!isChannelCharacteristicChangeTimeout) {
+                Log.d("ble_app", characteristic.getStringValue(0))
+                channelCharacteristicChange.offer(
+                    OnChangedResult(
+                        characteristic.uuid,
+                        characteristic.getStringValue(0)
+                    )
+                )
+            } else
+                isChannelCharacteristicChangeTimeout = false
         }
 
         override fun onCharacteristicRead(
             gatt: BluetoothGatt?,
             characteristic: BluetoothGattCharacteristic,
             status: Int
-        ){
-            Log.d("ARD","onRead " + characteristic.getStringValue(0))
-            chResult.offer(
+        ) {
+            Log.d("ble_app", "onRead " + characteristic.getStringValue(0))
+            channelResult.offer(
                 BluetoothResult(
                     characteristic.uuid,
                     characteristic.getStringValue(0) ?: "null",
@@ -127,7 +140,7 @@ class BLE: GATToverCoroutines {
             descriptor: BluetoothGattDescriptor,
             status: Int
         ) {
-            chDesc.offer(OnDescriptorWrite(descriptor, status))
+            channelDescriptor.offer(OnDescriptorWriteResult(descriptor, status))
         }
 
         override fun onCharacteristicWrite(
@@ -135,8 +148,8 @@ class BLE: GATToverCoroutines {
             characteristic: BluetoothGattCharacteristic,
             status: Int
         ) {
-            Log.d("ARD","onWrite " + characteristic.getStringValue(0))
-            chResult.offer(
+            Log.d("ble_app", "onWrite " + characteristic.getStringValue(0))
+            channelResult.offer(
                 BluetoothResult(
                     characteristic.uuid,
                     characteristic.getStringValue(0) ?: "null",
@@ -155,19 +168,19 @@ class BLE: GATToverCoroutines {
      *  @return true if device connected or throw exception
      */
     @ExperimentalCoroutinesApi
-    override suspend fun connectToGatt(device: BluetoothDevice, ctx: Context):Boolean{
-        if(!chState.isEmpty){
-            chState.receive()
+    override suspend fun connectToGatt(device: BluetoothDevice, ctx: Context): Boolean {
+        if (!channelState.isEmpty) {
+            channelState.receive()
         }
         btGattServer = (device.connectGatt(ctx, false, gattCallback))
-        withTimeoutOrNull(timeoutMs){
-            val s = chState.receive()
-            if(s.newState == BluetoothProfile.STATE_CONNECTED){
+        withTimeoutOrNull(timeoutMs) {
+            val s = channelState.receive()
+            if (s.newState == BluetoothProfile.STATE_CONNECTED) {
                 _isConnected.postValue(true)
-            }else{
+            } else {
                 throw BLEillegalStateException()
             }
-        }?:let{
+        } ?: let {
             throw BLEtimeoutException()
         }
         return true
@@ -184,7 +197,7 @@ class BLE: GATToverCoroutines {
         btGattServer?.let {
             it.disconnect()
             withTimeoutOrNull(timeoutMs) {
-                val s = chState.receive()
+                val s = channelState.receive()
                 if (s.newState == BluetoothProfile.STATE_DISCONNECTED) {
                 } else {
                     throw BLEillegalStateException()
@@ -204,16 +217,17 @@ class BLE: GATToverCoroutines {
      *  @param char - Bluetooth Characteristic
      *  @param value - writing value
      */
-    override suspend  fun writeChar(char: BluetoothGattCharacteristic, value: String){
+    override suspend fun writeChar(char: BluetoothGattCharacteristic, value: String) {
         char.setValue(value)
-        btGattServer?.let{
+        channelResult.poll()
+        btGattServer?.let {
             it.writeCharacteristic(char)
-            withTimeoutOrNull(timeoutMs){
-                val s = chResult.receive()
-            }?:let{
+            withTimeoutOrNull(timeoutMs) {
+                val s = channelResult.receive()
+            } ?: let {
                 throw BLEtimeoutException()
             }
-        }?:let{
+        } ?: let {
             throw BLEillegalStateException()
         }
     }
@@ -227,66 +241,69 @@ class BLE: GATToverCoroutines {
      *  @param char - Bluetooth Characteristic
      *  @return received characteristic's string value
      */
-    override suspend  fun readChar(char: BluetoothGattCharacteristic): String{
+    override suspend fun readChar(char: BluetoothGattCharacteristic): String {
         lateinit var result: BluetoothResult
-        btGattServer?.let{
+        channelResult.poll()
+        btGattServer?.let {
             it.readCharacteristic(char)
-            withTimeoutOrNull(timeoutMs){
-                result = chResult.receive()
-                Log.d("ARD","read ${result.value}")
-            }?:let{
+            withTimeoutOrNull(timeoutMs) {
+                result = channelResult.receive()
+                Log.d("ble_app", "read ${result.value}")
+            } ?: let {
                 throw BLEtimeoutException()
             }
             return result.value
-        }?:let{
+        } ?: let {
             throw BLEillegalStateException()
         }
     }
 
     /**
      *  Implementation of discovering services from BLE device's GATT server over coroutine.
-     *  In this function used channel with OnDiscovered class in parameter.
+     *  In this function used channel with OnDiscoveredResult class in parameter.
      *  Gatt callback send result in this channel and this function waiting for result from channel.
      *  If timeout is over function throw BLEtimeoutException
      *  If wrong order function throw BLEillegalStateException
      *  @return received list of services
      */
     override suspend fun discoverServices(): List<BluetoothGattService> {
-        btGattServer?.let{
+        channelDiscovery.poll()
+        btGattServer?.let {
             it.discoverServices()
             withTimeoutOrNull(timeoutMs * 2) {
-                btServices = chDisco.receive().services
-            }?:let{
+                GATTservices = channelDiscovery.receive().services
+            } ?: let {
                 throw BLEtimeoutException()
             }
-        }?:let{
+        } ?: let {
             throw BLEillegalStateException()
         }
-        return btServices
+        return GATTservices
     }
 
     /**
      *  Implementation of setting notification for BLE device's characteristic over coroutine.
-     *  In this function used channel with OnDescriptorWrite class in parameter.
+     *  In this function used channel with OnDescriptorWriteResult class in parameter.
      *  Gatt callback send result in this channel and this function waiting for result from channel.
      *  If timeout is over function throw BLEtimeoutException
      *  If wrong order function throw BLEillegalStateException
      *  @param char - Bluetooth characteristic
      *  @param enable if it true - notification will be enabled
      *  */
-    override suspend fun setNotify(char: BluetoothGattCharacteristic, enable: Boolean){
-        btGattServer?.let{
+    override suspend fun setNotify(char: BluetoothGattCharacteristic, enable: Boolean) {
+        channelDescriptor.poll()
+        btGattServer?.let {
             it.setCharacteristicNotification(char, enable)
             val descriptor = char.getDescriptor(uiidCCC)?.apply {
                 value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
             }
             val s = it.writeDescriptor(descriptor)
-            withTimeoutOrNull(timeoutMs){
-                val s = chDesc.receive()
-            }?:let{
+            withTimeoutOrNull(timeoutMs) {
+                val s = channelDescriptor.receive()
+            } ?: let {
                 throw BLEtimeoutException()
             }
-        }?:let{
+        } ?: let {
             throw BLEillegalStateException()
         }
     }
@@ -294,21 +311,19 @@ class BLE: GATToverCoroutines {
 
     /**
      *  Implementation of waiting notification from BLE device over coroutine.
-     *  In this function used channel with OnChanged class in parameter.
+     *  In this function used channel with OnChangedResult class in parameter.
      *  Gatt callback send result in this channel and this function waiting for result from channel.
      *  If timeout is over function throw BLEtimeoutException
      *  If wrong order function throw BLEillegalStateException
      *  @param char - Bluetooth characteristic
      *  @return characteristic's string value
      */
-    override suspend fun waitForChange(char: BluetoothGattCharacteristic): String{
-        lateinit var s: OnChanged
-        isChChangeTimeout = false
-        withTimeoutOrNull(timeoutMs){
-            s = chChange.receive()
-        }?:let{
-            Log.d("ARD","set true")
-            isChChangeTimeout = true
+    override suspend fun waitForChange(char: BluetoothGattCharacteristic): String {
+        lateinit var s: OnChangedResult
+        withTimeoutOrNull(timeoutMs) {
+            s = channelCharacteristicChange.receive()
+        } ?: let {
+            isChannelCharacteristicChangeTimeout = true
             throw BLEtimeoutException()
         }
         return s.res

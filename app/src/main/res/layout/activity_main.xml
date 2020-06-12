@@ -59,9 +59,9 @@
 
                 <androidx.appcompat.widget.AppCompatEditText
                     android:id="@+id/editText"
-                    android:layout_weight="1"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:ems="10"
                     android:inputType="textPersonName"
                     android:textColorHint="@color/colorAccent"
@@ -77,8 +77,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:background="?android:attr/detailsElementBackground"
-                    android:paddingStart="8dp"
                     android:paddingLeft="8dp"
+                    android:paddingEnd="8dp"
                     android:src="@drawable/ic_send_black_24dp"
                     android:textColor="@android:color/black"
                     android:visibility="@{viewModel.spinner == false ? View.VISIBLE : View.GONE}"
