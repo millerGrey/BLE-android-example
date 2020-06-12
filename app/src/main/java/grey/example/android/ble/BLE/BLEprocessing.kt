@@ -1,6 +1,7 @@
 package c.grey.gardbt.BLE
 
-import android.bluetooth.BluetoothAdapter.*
+import android.bluetooth.BluetoothAdapter.LeScanCallback
+import android.bluetooth.BluetoothAdapter.getDefaultAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattService
@@ -32,7 +33,6 @@ class BLEprocessing(val ble: GATToverCoroutines) {
         get() = _devices
 
 
-
     private var _isScan = MutableLiveData<Boolean>(false)
     val isScan: LiveData<Boolean>
         get() = _isScan
@@ -45,7 +45,7 @@ class BLEprocessing(val ble: GATToverCoroutines) {
                     break
                 }
             }
-        }
+        } ?: addDevice(device)
     }
 
     fun startScan() {
@@ -68,27 +68,32 @@ class BLEprocessing(val ble: GATToverCoroutines) {
         scanJob.cancel()
     }
 
-    fun setFilterName(str: String){
+    /**
+     * This function set filter by name
+     * @param str - String with names wich you want to filter delimiter - " "
+     */
+    fun setFilterName(str: String) {
         filterString = str.split(" ")
     }
 
     private fun addDevice(device: BluetoothDevice) {
-        if(tempListOfDevices.add(device)) {
+        if (tempListOfDevices.add(device)) {
             _devices.postValue(tempListOfDevices)
         }
     }
-    private fun zeroDevices(){
+
+    private fun zeroDevices() {
         tempListOfDevices = emptySet<BluetoothDevice>().toMutableSet()
         _devices.postValue(emptySet())
     }
 
-    suspend fun connectToDevice(device: BluetoothDevice, ctx: Context): Boolean{
-        return try{
-            when(ble.connectToGatt(device, ctx)){
+    suspend fun connectToDevice(device: BluetoothDevice, ctx: Context): Boolean {
+        return try {
+            when (ble.connectToGatt(device, ctx)) {
                 true -> {
                     BLEservices = ble.discoverServices()
                     val char = BLEservices.firstOrNull { it.getCharacteristic(uuidCmdChar) != null }
-                        ?.getCharacteristic(uuidCmdChar)?:return false
+                        ?.getCharacteristic(uuidCmdChar) ?: return false
                     ble.setNotify(char, true)
                     true
                 }
@@ -96,12 +101,13 @@ class BLEprocessing(val ble: GATToverCoroutines) {
                     false
                 }
             }
-        }catch(e: Exception){
+        } catch (e: Exception) {
             e.printStackTrace()
             false
         }
     }
-    suspend fun disconnectFromDevice(){
+
+    suspend fun disconnectFromDevice() {
         try {
             ble.disconnectFromGatt()
         } catch (e: Exception) {
@@ -109,30 +115,31 @@ class BLEprocessing(val ble: GATToverCoroutines) {
         }
     }
 
-    suspend fun sendCMD(cmd: String):String{
+    suspend fun sendCMD(cmd: String): String {
         var char: BluetoothGattCharacteristic? = null
 
         char = BLEservices.firstOrNull { it.getCharacteristic(uuidCmdChar) != null }
-            ?.getCharacteristic(uuidCmdChar)?: return "none"//BluetoothGattCharacteristic(uuidCmdChar,0,0)
-        var result:String?
+            ?.getCharacteristic(uuidCmdChar)
+            ?: return "none"//BluetoothGattCharacteristic(uuidCmdChar,0,0)
+        var result: String?
         var allString = ""
         try {
             ble.writeChar(char, cmd)
             while (true) {
                 result = ble.waitForChange(char)
-                if(!result.contains("\r\n"))
+                if (!result.contains("\r\n"))
                     result = ble.readChar(char)
-                if(result == "" || result == "OK" || result.contains("ER:")) {
+                if (result == "" || result == "OK" || result.contains("ER:")) {
                     allString += result
                     break
                 }
                 ble.writeChar(char, "OK")
                 allString += result
             }
-        }catch(e: BLEtimeoutException){
+        } catch (e: BLEtimeoutException) {
             e.printStackTrace()
             return Strings.get(R.string.timeout_is_over)
-        }catch(e: BLEillegalStateException){
+        } catch (e: BLEillegalStateException) {
             e.printStackTrace()
             return Strings.get(R.string.unable_to_execute_command)
         }

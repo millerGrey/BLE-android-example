@@ -38,6 +38,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application){
     val processing = BLEprocessing(BLE())
 
     init{
+        /**
+         * enter name of your devices or delete this string
+         */
         processing.setFilterName("MyESP32")
     }
 
