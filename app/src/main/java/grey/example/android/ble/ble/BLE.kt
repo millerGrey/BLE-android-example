@@ -1,4 +1,4 @@
-package c.grey.gardbt.BLE
+package grey.example.android.ble.ble
 
 import android.bluetooth.*
 import android.content.Context

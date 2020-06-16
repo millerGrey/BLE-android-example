@@ -2,12 +2,11 @@ package grey.example.android.ble
 
 import android.app.Application
 import android.bluetooth.*
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import c.grey.gardbt.BLE.BLE
-import c.grey.gardbt.BLE.BLEprocessing
+import grey.example.android.ble.ble.BLE
+import grey.example.android.ble.ble.BLEprocessing
 import kotlinx.coroutines.*
 
 class MainViewModel(application: Application) : AndroidViewModel(application){

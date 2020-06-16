@@ -1,4 +1,4 @@
-package c.grey.gardbt.BLE
+package grey.example.android.ble.ble
 
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
@@ -6,7 +6,6 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattService
 import android.content.Context
 import androidx.lifecycle.LiveData
-import java.util.*
 
 /**
  *  Interface to interaction with BLE device over coroutines

@@ -8,5 +8,5 @@
     <string name="timeout_is_over">Operation\'s timeout is over</string>
     <string name="unable_to_execute_command">Unable to execute command</string>
     <string name="disconnected">Disconnected</string>
-    <string name="connected">Подключено к %s</string>
+    <string name="connected">Connected to %s</string>
 </resources>
