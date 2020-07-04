@@ -169,9 +169,7 @@ class BLE : GATToverCoroutines {
      */
     @ExperimentalCoroutinesApi
     override suspend fun connectToGatt(device: BluetoothDevice, ctx: Context): Boolean {
-        if (!channelState.isEmpty) {
-            channelState.receive()
-        }
+        channelState.poll()
         btGattServer = (device.connectGatt(ctx, false, gattCallback))
         withTimeoutOrNull(timeoutMs) {
             val s = channelState.receive()
@@ -194,6 +192,7 @@ class BLE : GATToverCoroutines {
      *  If wrong order function throw BLEillegalStateException
      */
     override suspend fun disconnectFromGatt() {
+        channelState.poll()
         btGattServer?.let {
             it.disconnect()
             withTimeoutOrNull(timeoutMs) {
