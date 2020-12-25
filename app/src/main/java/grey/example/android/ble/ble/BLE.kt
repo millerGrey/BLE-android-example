@@ -80,7 +80,7 @@ class BLE : GATToverCoroutines {
     /**
      * Operation's timeout
      */
-    private val timeoutMs: Long = 2000
+    private val timeoutMs: Long = 5000
 
     /**
      *  Implementation of BluetoothGattCallback

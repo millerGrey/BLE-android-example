@@ -5,6 +5,7 @@ import android.bluetooth.*
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
 import grey.example.android.ble.ble.BLE
 import grey.example.android.ble.ble.BLEprocessing
 import kotlinx.coroutines.*
@@ -57,7 +58,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application){
 
     fun disconnect(){
         activeDevice = null
-        GlobalScope.launch {
+        viewModelScope.launch {
             processing.disconnectFromDevice()
         }
 //        _toastMessage.value = getApplication<Application>().getString(R.string.disconnected)
@@ -70,15 +71,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application){
             return
         }
         _spinner.value = true
-        GlobalScope.launch{
+        viewModelScope.launch{
             val result = processing.sendCMD(str)
 
             when(result){
-                "ER: Wrong data"->_result.postValue(getApplication<Application>().getString(R.string.wrong_data))
-                "ER: No support command"->_result.postValue(getApplication<Application>().getString(R.string.command_not_support))
-                else -> _result.postValue(result)
+                "ER: Wrong data"->_result.value = getApplication<Application>().getString(R.string.wrong_data)
+                "ER: No support command"->_result.value = getApplication<Application>().getString(R.string.command_not_support)
+                else -> _result.value = result
             }
-            _spinner.postValue(false)
+            _spinner.value = false
         }
     }
 
@@ -88,10 +89,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application){
         stopScan()
         activeDevice  = devices.value?.toList()?.get(pos)
         if(isConnected.value == false){
-            GlobalScope.launch {
+            viewModelScope.launch {
                 activeDevice?.let {
                     if (processing.connectToDevice(it, getApplication())) {
-                        _toastMessage.postValue(String.format(getApplication<Application>().getString(R.string.connected),it.name.toString()))
+                        _toastMessage.value = String.format(getApplication<Application>().getString(R.string.connected),it.name.toString())
                     }
                 }
             }
