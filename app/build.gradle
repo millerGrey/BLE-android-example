@@ -5,7 +5,6 @@ apply plugin: 'kotlin-android-extensions'
 
 android {
     compileSdkVersion 29
-    buildToolsVersion "29.0.3"
 
     defaultConfig {
         applicationId "grey.example.android.ble"
@@ -26,6 +25,7 @@ android {
     dataBinding{
         enabled = true
     }
+    namespace 'grey.example.android.ble'
 
 }
 

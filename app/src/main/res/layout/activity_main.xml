@@ -15,8 +15,6 @@
         android:layout_height="match_parent"
         tools:context=".MainActivity">
 
-        <!--    <include layout="@layout/content_main" />-->
-
         <FrameLayout
             android:id="@+id/fragment_container"
             android:layout_width="match_parent"
@@ -92,12 +90,7 @@
                     android:visibility="@{viewModel.spinner == true ? View.VISIBLE : View.GONE}"
                      />
 
-                <!--                <Button-->
-                <!--                    android:id="@+id/button2"-->
-                <!--                    android:layout_width="wrap_content"-->
-                <!--                    android:layout_height="wrap_content"-->
-                <!--                    android:text="Команда" />-->
-            </LinearLayout>
+               </LinearLayout>
 
         </LinearLayout>
 
@@ -105,19 +98,10 @@
             android:id="@+id/fab"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_margin="16dp"
             app:icon="@{viewModel.isScan}"
             app:layout_constraintEnd_toEndOf="@+id/linearLayout"
             app:layout_constraintTop_toTopOf="@+id/fragment_container" />
-
-        <!--        <Button-->
-        <!--            android:id="@+id/button"-->
-        <!--            android:layout_width="wrap_content"-->
-        <!--            android:layout_height="wrap_content"-->
-        <!--            android:background="@color/colorAccent"-->
-        <!--            android:text="SEND"-->
-        <!--            android:textColor="#000000"-->
-        <!--            app:layout_anchor="@+id/fragment_container"-->
-        <!--            app:layout_anchorGravity="start|bottom" />-->
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
